@@ -21,11 +21,11 @@ module RailsAdmin
         model.all
       end
 
-      def first(options = {}, scope = nil)
-        all(options, scope).first
+      def first(options = {}, scope = nil, fields = config.list.fields)
+        all(options, scope, fields).first
       end
 
-      def all(options = {}, scope = nil)
+      def all(options = {}, scope = nil, fields = config.list.fields)
         scope ||= scoped
         scope = scope.includes(options[:include]) if options[:include]
         scope = scope.limit(options[:limit]) if options[:limit]

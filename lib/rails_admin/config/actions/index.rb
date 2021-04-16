@@ -30,13 +30,13 @@ module RailsAdmin
         register_instance_option :controller do
           proc do
             @objects ||= list_entries
-
-            unless @model_config.list.scopes.empty?
+            scopes = @model_config.list.with(controller: self).scopes
+            unless scopes.empty?
               if params[:scope].blank?
-                unless @model_config.list.scopes.first.nil?
-                  @objects = @objects.send(@model_config.list.scopes.first)
+                unless scopes.first.nil?
+                  @objects = @objects.send(scopes.first)
                 end
-              elsif @model_config.list.scopes.collect(&:to_s).include?(params[:scope])
+              elsif scopes.collect(&:to_s).include?(params[:scope])
                 @objects = @objects.send(params[:scope].to_sym)
               end
             end

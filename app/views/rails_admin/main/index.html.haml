@@ -9,7 +9,8 @@
   export_action = RailsAdmin::Config::Actions.find(:export, { controller: self.controller, abstract_model: @abstract_model })
   export_action = nil unless export_action && authorized?(export_action.authorization_key, @abstract_model)
   description = RailsAdmin.config(@abstract_model.model_name).description
-  properties = @model_config.list.with(controller: self.controller, view: self, object: @abstract_model.model.new).visible_fields
+  bindings = { controller: self.controller, view: self, object: @abstract_model.model.new }
+  properties = @model_config.list.with(bindings).visible_fields
   checkboxes = @model_config.list.checkboxes?
   # columns paginate
   unless (frozen_columns = @model_config.list.sidescroll_frozen_columns)
@@ -22,13 +23,13 @@
 - content_for :contextual_tabs do
   - if checkboxes
     = bulk_menu
-  - if filterable_fields.present?
+  - if filterable_fields(bindings).present?
     %li.dropdown{style: 'float:right'}
       %a.dropdown-toggle{href: '#', :'data-toggle' => "dropdown"}
         = t('admin.misc.add_filter')
         %b.caret
       %ul.dropdown-menu#filters{style: 'left:auto; right:0;'}
-        - filterable_fields.each do |field|
+        - filterable_fields(bindings).each do |field|
           - field_options = case field.type
           - when :enum
             - options_for_select(field.with(object: @abstract_model.model.new).enum)
@@ -45,7 +46,7 @@
 #list
   = form_tag(index_path(params.except(*%w[page f query])), method: :get, class: "pjax-form form-inline") do
     .well
-      %span#filters_box{data: {options: ordered_filter_options.to_json}}
+      %span#filters_box{data: {options: ordered_filter_options(bindings).to_json}}
       %hr.filters_box{style: "display:#{ordered_filters.empty? ? 'none' : 'block'}"}
       .input-group
         %input.form-control.input-small{name: "query", type: "search", value: query, placeholder: t("admin.misc.filter")}
@@ -58,9 +59,9 @@
       - if export_action
         %span{style: 'float:right'}= link_to wording_for(:link, export_action), export_path(params.except('set').except('page')), class: 'btn btn-info'
 
-  - unless @model_config.list.scopes.empty?
+  - unless (scopes = @model_config.list.with(bindings).scopes).empty?
     %ul.nav.nav-tabs#scope_selector
-      - @model_config.list.scopes.each_with_index do |scope, index|
+      - scopes.each_with_index do |scope, index|
         - scope = '_all' if scope.nil?
         %li{class: "#{'active' if scope.to_s == params[:scope] || (params[:scope].blank? && index == 0)}"}
           %a{href: index_path(params.merge(scope: scope, page: nil)), class: 'pjax'}= I18n.t("admin.scopes.#{@abstract_model.to_param}.#{scope}", default: I18n.t("admin.scopes.#{scope}", default: scope.to_s.titleize))

@@ -36,8 +36,8 @@ module RailsAdmin
       sets
     end
 
-    def filterable_fields
-      @filterable_fields ||= @model_config.list.fields.select(&:filterable?)
+    def filterable_fields(bindings)
+      @filterable_fields ||= @model_config.list.fields.collect { |f| f.with(bindings) }.select(&:filterable?)
     end
 
     def ordered_filters
@@ -56,13 +56,13 @@ module RailsAdmin
       end.to_a.sort_by(&:first)
     end
 
-    def ordered_filter_options
+    def ordered_filter_options(bindings)
       @ordered_filter_options ||= ordered_filters.map do |duplet|
         options = {index: duplet[0]}
         filter_for_field = duplet[1]
         filter_name = filter_for_field.keys.first
         filter_hash = filter_for_field.values.first
-        unless (field = filterable_fields.find { |f| f.name == filter_name.to_sym })
+        unless (field = filterable_fields(bindings).find { |f| f.name == filter_name.to_sym })
           raise "#{filter_name} is not currently filterable; filterable fields are #{filterable_fields.map(&:name).join(', ')}"
         end
         case field.type
