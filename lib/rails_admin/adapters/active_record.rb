@@ -116,6 +116,22 @@ module RailsAdmin
           @scope = scope
         end
 
+        def add_filter(field, value, operator)
+          # support fields that are filterable but not searchable
+          if field.filterable && !field.searchable
+            column_infos = { column: "#{field.abstract_model.table_name}.#{field.name}", type: field.type }
+
+            statement, value1, value2 = StatementBuilder.new(column_infos[:column], column_infos[:type], value, operator, @scope.connection.adapter_name).to_statement
+            @statements << statement if statement.present?
+            @values << value1 unless value1.nil?
+            @values << value2 unless value2.nil?
+            table, column = column_infos[:column].split('.')
+            @tables.push(table) if column
+          else
+            add(field, value, operator)
+          end
+        end
+
         def add(field, value, operator)
           field.searchable_columns.flatten.each do |column_infos|
             statement, value1, value2 = StatementBuilder.new(column_infos[:column], column_infos[:type], value, operator, @scope.connection.adapter_name).to_statement
@@ -157,7 +173,7 @@ module RailsAdmin
             field = fields.detect { |f| f.name.to_s == field_name }
             value = parse_field_value(field, filter_dump[:v])
 
-            wb.add(field, value, (filter_dump[:o] || RailsAdmin::Config.default_search_operator))
+            wb.add_filter(field, value, (filter_dump[:o] || RailsAdmin::Config.default_search_operator))
             # AND current filter statements to other filter statements
             scope = wb.build
           end
