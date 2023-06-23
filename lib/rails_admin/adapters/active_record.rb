@@ -151,8 +151,8 @@ module RailsAdmin
       end
 
       def query_scope(scope, query, fields = config.list.fields.select(&:queryable?))
-        if config.list.search_by
-          scope.send(config.list.search_by, query)
+        if (search_by = config.list.with(fields.first.bindings).search_by)
+          scope.send(search_by, query)
         else
           wb = WhereBuilder.new(scope)
           fields.each do |field|
